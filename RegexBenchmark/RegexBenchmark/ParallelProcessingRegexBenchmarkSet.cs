@@ -1,10 +1,12 @@
 ﻿using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Engines;
+using System.Collections.Concurrent;
+using System.Text.RegularExpressions;
 
 namespace RegexBenchmark
 {
     [SimpleJob(RunStrategy.Monitoring, launchCount: 10, warmupCount: 0, iterationCount: 30)]
-    public class StringMethodsBenchmarkSet
+    public class ParallelProcessingRegexBenchmarkSet
     {
         private string _firstPattern = "";
         private string _lastPattern = "";
@@ -20,7 +22,7 @@ namespace RegexBenchmark
 
         private IEnumerable<string> MatchTest(int regexSize)
         {
-            var regex = SetupFunctions(regexSize);
+            var regex = SetupRegex(regexSize);
 
             var data = new string[]
             {
@@ -32,12 +34,12 @@ namespace RegexBenchmark
             }
             .Select(x => x.ToUpper());
 
-            List<string> result = new();
-            regex.ForEach(r =>
+            ConcurrentBag<string> result = new();
+            Parallel.ForEach(regex, new ParallelOptions() { MaxDegreeOfParallelism = 4 }, r =>
             {
                 var matching = data.Select(x =>
                     {
-                        if (r(x))
+                        if (r.IsMatch(x))
                         {
                             return x;
                         }
@@ -46,7 +48,8 @@ namespace RegexBenchmark
                             return string.Empty;
                         }
                     }
-                ).ToList();
+                )
+                .ToList();
                 matching.ForEach(m =>
                 {
                     if (!result.Any(x => x == m))
@@ -59,9 +62,9 @@ namespace RegexBenchmark
             return result.Where(x => !string.IsNullOrWhiteSpace(x));
         }
 
-        private List<Func<string, bool>> SetupFunctions(int numberOfRules)
+        private List<Regex> SetupRegex(int numberOfRules)
         {
-            List<Func<string, bool>> result = new();
+            List<Regex> result = new();
             for (int i = 0; i < numberOfRules; i++)
             {
                 var guid = Guid.NewGuid().ToString().ToUpper();
@@ -75,10 +78,7 @@ namespace RegexBenchmark
                     _lastPattern = guid;
                 }
 
-                result.Add(i % 2 == 0 ?
-                    new Func<string, bool>(str => str.StartsWith($"{guid} ")) :
-                    new Func<string, bool>(str => str.EndsWith($" {guid}"))
-                );
+                result.Add(new Regex(i % 2 == 0 ? $"{guid} .*" : $".* {guid}"));
             }
             return result;
         }

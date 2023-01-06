@@ -12,10 +12,10 @@ namespace RegexBenchmark
 
         [Benchmark]
         public string[] Match100Rules() => MatchTest(1_00).ToArray();
-        
+
         [Benchmark]
         public string[] Match1_000Rules() => MatchTest(1_000).ToArray();
-        
+
         [Benchmark]
         public string[] Match10_000Rules() => MatchTest(10_000).ToArray();
 
@@ -33,32 +33,37 @@ namespace RegexBenchmark
             }
             .Select(x => x.ToUpper());
 
-            List<string> result = new ();
+            List<string> result = new();
             regex.ForEach(r =>
             {
-                result.AddRange(
-                    data.Select(x =>
+                var matching = data.Select(x =>
+                    {
+                        if (r.IsMatch(x))
                         {
-                            if (r.IsMatch(x))
-                            {
-                                return x;
-                            }
-                            else
-                            {
-                                return string.Empty;
-                            }
+                            return x;
                         }
-                    )
-                );
+                        else
+                        {
+                            return string.Empty;
+                        }
+                    }
+                ).ToList();
+                matching.ForEach(m =>
+                {
+                    if (!result.Any(x => x == m))
+                    {
+                        result.Add(m);
+                    }
+                });
             });
-            
+
             return result.Where(x => !string.IsNullOrWhiteSpace(x));
         }
 
         private List<Regex> SetupRegex(int numberOfRules)
         {
-            List<Regex> result = new ();
-            for(int i = 0; i < numberOfRules; i++)
+            List<Regex> result = new();
+            for (int i = 0; i < numberOfRules; i++)
             {
                 var guid = Guid.NewGuid().ToString().ToUpper();
 
