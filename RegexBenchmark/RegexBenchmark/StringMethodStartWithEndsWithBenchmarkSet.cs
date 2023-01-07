@@ -4,7 +4,7 @@ using BenchmarkDotNet.Engines;
 namespace RegexBenchmark
 {
     [SimpleJob(RunStrategy.Monitoring, launchCount: 10, warmupCount: 0, iterationCount: 30)]
-    public class StringMethodsBenchmarkSet
+    public class StringMethodStartWithEndsWithBenchmarkSet
     {
         private string _firstPattern = "";
         private string _lastPattern = "";
